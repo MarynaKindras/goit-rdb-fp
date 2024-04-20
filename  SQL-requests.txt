@@ -36,10 +36,20 @@ DROP COLUMN code;
 
 USE pandemic;
 
-SELECT id, MAX(number_rabies) AS max_value, MIN(number_rabies) AS min_value, 
-AVG(number_rabies) AS average_value FROM infectious_cases_normalized
+SELECT 
+Entity,
+Code,
+AVG(number_rabies) AS average_value,
+MIN(number_rabies) AS min_value, 
+MAX(number_rabies) AS max_value, 
+SUM(number_rabies) AS sum_value
+
+FROM infectious_cases_normalized
+
 WHERE number_rabies IS NOT NULL AND number_rabies <> ''
-GROUP BY id
+
+GROUP BY Entity, Code
+
 ORDER BY average_value DESC
 LIMIT 10;
 
@@ -47,63 +57,13 @@ LIMIT 10;
 
 USE pandemic;
 
-ALTER TABLE infectious_cases_normalized 
-ADD COLUMN start_date DATE NULL AFTER year,
-ADD COLUMN cur_date DATE NULL AFTER start_date,
-ADD COLUMN subtract_year INT NULL AFTER cur_date;
+SELECT
+MAKEDATE(year, 1) first_jan_of_year,
+CURDATE() today,
 
-DROP FUNCTION IF EXISTS fn_start_date;
-
-DELIMITER //
-
-CREATE FUNCTION fn_start_date(year INT)
-RETURNS DATE
-DETERMINISTIC 
-NO SQL
-BEGIN
-    DECLARE result DATE;
-    SET result = MAKEDATE(year, 1);
-    RETURN result;
-END //
-
-DELIMITER ;
-
-DROP FUNCTION IF EXISTS fn_cur_date;
-
-DELIMITER //
-
-CREATE FUNCTION fn_cur_date()
-RETURNS DATE
-DETERMINISTIC 
-NO SQL
-BEGIN
-    DECLARE result DATE;
-    SET result = CURDATE();
-    RETURN result;
-END //
-
-DELIMITER ;
-
-DROP FUNCTION IF EXISTS fn_subtract_year;
-
-DELIMITER //
-
-CREATE FUNCTION fn_subtract_year(cur_date DATE, start_date DATE)
-RETURNS INT
-DETERMINISTIC 
-NO SQL
-BEGIN
-    DECLARE result INT;
-    SET result = YEAR(cur_date) - YEAR(start_date);
-    RETURN result;
-END //
-
-DELIMITER ;
-
-UPDATE infectious_cases_normalized
-SET cur_date = fn_cur_date(),
-start_date = fn_start_date(year),
-subtract_year = fn_subtract_year(cur_date, start_date);
+TIMESTAMPDIFF(YEAR, MAKEDATE(year, 1), CURDATE())  year_difference
+FROM
+infectious_cases_normal
 
 *5 SQL-query:
 
